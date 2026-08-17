@@ -1,0 +1,36 @@
+@'
+# File chứa API key - KHÔNG ĐẨY LÊN GITHUB
+.env
+.env.local
+.env.*.local
+
+# Môi trường ảo
+venv/
+env/
+ENV/
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+
+# Log files
+*.log
+translator.log
+
+# Thư mục output (chứa file đã dịch)
+output/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+'@ | Out-File -FilePath ".gitignore" -Encoding UTF8 -Force

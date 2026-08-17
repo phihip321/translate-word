@@ -1,47 +1,82 @@
-﻿import google.generativeai as genai
+﻿"""
+Dịch thuật với Gemini 3.5 Flash
+"""
+import google.generativeai as genai
 from typing import List
 import time
 import re
 from tqdm import tqdm
+import os
+from dotenv import load_dotenv
+
+# Load API key từ file .env
+load_dotenv()
 
 class GeminiTranslator:
-    def __init__(self, api_key: str, model: str = "gemini-1.5-pro"):
+    def __init__(self, model: str = "gemini-3.5-flash"):
+        # Lấy API key từ biến môi trường
+        api_key = os.getenv('GEMINI_API_KEY')
+        
+        if not api_key:
+            raise ValueError("❌ Không tìm thấy GEMINI_API_KEY trong file .env")
+        
+        self.model_name = model
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel(model)
+        print(f"✅ Đã kết nối với {model}")
     
-    def translate_book(self, paragraphs: List[str], batch_size: int = 10, 
-                      max_chars_per_batch: int = 4000,
-                      source_lang: str = "English", target_lang: str = "Vietnamese") -> List[str]:
+    def translate_chapter(self, paragraphs: List[str], 
+                          chapter_name: str,
+                          batch_size: int = 10) -> List[str]:
+        """Dịch một chapter"""
         all_translations = []
-        batches = self._create_batches(paragraphs, batch_size, max_chars_per_batch)
+        batches = self._create_batches(paragraphs, batch_size, 4000)
         
-        print(f"📚 Dịch {len(paragraphs)} paragraph thành {len(batches)} batch")
+        print(f"\n📚 Dịch chapter: {chapter_name}")
+        print(f"📊 {len(paragraphs)} đoạn, chia thành {len(batches)} batch")
         
         for i, batch in enumerate(tqdm(batches, desc="Đang dịch")):
-            translated = self._translate_with_retry(batch, source_lang, target_lang)
+            translated = self._translate_with_retry(batch)
             all_translations.extend(translated)
             if i < len(batches) - 1:
-                time.sleep(1)
+                time.sleep(0.5)
+        
         return all_translations
     
-    def _translate_with_retry(self, paragraphs: List[str], source_lang: str, 
-                             target_lang: str, max_retries: int = 3) -> List[str]:
+    def _translate_with_retry(self, paragraphs: List[str], 
+                              max_retries: int = 3) -> List[str]:
         for attempt in range(max_retries):
             try:
-                return self._translate_batch(paragraphs, source_lang, target_lang)
+                return self._translate_batch(paragraphs)
             except Exception as e:
                 print(f"⚠️ Lỗi lần {attempt + 1}: {e}")
                 time.sleep(2 ** attempt)
+        print(f"❌ Dịch thất bại, giữ nguyên bản gốc")
         return paragraphs.copy()
     
-    def _translate_batch(self, paragraphs: List[str], source_lang: str, target_lang: str) -> List[str]:
-        prompt = f"""Translate from {source_lang} to {target_lang}. Return ONLY translations, each numbered [1], [2], etc.
+    def _translate_batch(self, paragraphs: List[str]) -> List[str]:
+        prompt = f"""You are a professional literary translator. Translate the following text from English to Vietnamese.
 
+IMPORTANT RULES:
+1. Translate each paragraph separately
+2. Keep the exact same structure
+3. Maintain the original meaning, tone, and style
+4. Return ONLY the translations, each numbered [1], [2], etc.
+
+Text to translate:
 {chr(10).join(f'[{i+1}] {p}' for i, p in enumerate(paragraphs))}
 
 Translations:"""
         
-        response = self.model.generate_content(prompt)
+        response = self.model.generate_content(
+            prompt,
+            generation_config={
+                "temperature": 0.3,
+                "top_p": 0.95,
+                "max_output_tokens": 4000,
+            }
+        )
+        
         return self._parse_response(response.text, len(paragraphs))
     
     def _parse_response(self, response: str, expected_count: int) -> List[str]:
@@ -68,6 +103,7 @@ Translations:"""
         
         for para in paragraphs:
             para_len = len(para)
+            
             if para_len > max_chars:
                 if current_batch:
                     batches.append(current_batch)
