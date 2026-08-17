@@ -115,35 +115,33 @@ class PDFProcessor:
             print(f"📑 Đọc từ Bookmark: {len(bookmarks)} mục")
             
             chapters = {}
-            
-            # Lấy tất cả bookmark cấp 1 (level = 1)
-            level1_items = [bm for bm in bookmarks if bm["level"] == 1]
-            
-            # Nếu không có level 1, lấy level 2
-            if not level1_items:
-                level1_items = [bm for bm in bookmarks if bm["level"] == 2]
-            
-            # Nếu vẫn không có, lấy tất cả
-            if not level1_items:
-                level1_items = bookmarks
-            
-            print(f"📑 Lấy {len(level1_items)} bookmark cấp 1 làm chapter")
-            
-            for bm in level1_items:
+            for bm in bookmarks:
                 title = bm["title"].strip()
-                # Lấy tất cả bookmark cấp 1 làm chapter (không cần có từ "Chapter")
-                chapters[title] = ""
+                
+                # Tìm Chapter trong bookmark
+                match = re.search(r'(?i)^(?:chapter|chương)\s+(\d+|[IVXLCDM]+)\s*[:.]?\s*(.*?)$', title)
+                
+                if match:
+                    chapter_num = match.group(1)
+                    chapter_title = match.group(2).strip()
+                    
+                    if chapter_title:
+                        chapter_name = f"Chapter {chapter_num}: {chapter_title}"
+                    else:
+                        chapter_name = f"Chapter {chapter_num}"
+                    
+                    chapters[chapter_name] = ""
             
             # Nếu tìm thấy chapter từ bookmark
             if chapters:
                 # Lấy nội dung cho từng chapter
                 if self.full_text:
-                    chapters = self._fill_chapter_content(chapters)
+                    chapters = self._extract_content_for_chapters(chapters)
                 
                 self.chapters = chapters
                 return chapters
         
-        # ===== CÁCH 2: TỰ DETECT TỪ HEADING (FALLBACK) =====
+        # ===== CÁCH 2: TỰ DETECT TỪ HEADING =====
         print("📑 Không có Bookmark, tự detect từ heading...")
         
         if text is None:
@@ -155,31 +153,26 @@ class PDFProcessor:
         self.chapters = chapters
         return chapters
     
-    def _fill_chapter_content(self, chapters: Dict[str, str]) -> Dict[str, str]:
+    def _extract_content_for_chapters(self, chapters: Dict[str, str]) -> Dict[str, str]:
         """Lấy nội dung cho từng chapter từ full_text"""
-        if not self.full_text:
-            return chapters
-        
         result = {}
         chapter_list = list(chapters.keys())
         
         for i, title in enumerate(chapter_list):
             # Tìm vị trí bắt đầu
-            start_pos = self.full_text.find(title)
+            clean_title = re.sub(r'^Chapter\s+\d+:\s*', '', title)
+            start_pos = self.full_text.find(clean_title)
             if start_pos == -1:
-                # Thử tìm với title đơn giản hơn (bỏ dấu)
-                simple_title = re.sub(r'[^\w\s]', '', title)
-                start_pos = self.full_text.find(simple_title)
+                start_pos = self.full_text.find(title)
             
             # Tìm vị trí kết thúc
             end_pos = len(self.full_text)
             if i < len(chapter_list) - 1:
                 next_title = chapter_list[i + 1]
-                end_pos = self.full_text.find(next_title, start_pos + 1) if start_pos != -1 else -1
+                clean_next = re.sub(r'^Chapter\s+\d+:\s*', '', next_title)
+                end_pos = self.full_text.find(clean_next, start_pos + 1) if start_pos != -1 else -1
                 if end_pos == -1:
-                    # Thử tìm với title đơn giản hơn
-                    simple_next = re.sub(r'[^\w\s]', '', next_title)
-                    end_pos = self.full_text.find(simple_next, start_pos + 1) if start_pos != -1 else -1
+                    end_pos = self.full_text.find(next_title, start_pos + 1) if start_pos != -1 else -1
                 if end_pos == -1:
                     end_pos = len(self.full_text)
             
@@ -191,7 +184,7 @@ class PDFProcessor:
         return result
     
     def _detect_from_headings(self, text: str) -> Dict[str, str]:
-        """Tự detect chapter từ heading (fallback)"""
+        """Tự detect chapter từ heading"""
         lines = text.split('\n')
         
         filtered_lines = []
@@ -260,4 +253,3 @@ class PDFProcessor:
         temp_dir = Path("temp_images")
         if temp_dir.exists():
             shutil.rmtree(temp_dir)
-            print("✅ Đã dọn dẹp ảnh tạm")

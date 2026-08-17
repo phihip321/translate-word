@@ -19,3 +19,4 @@ pyyaml>=6.0
 tqdm>=4.65.0
 python-dotenv>=1.0.0
 '@ | Out-File -FilePath "requirements.txt" -Encoding UTF8 -Force
+PyMuPDF>=1.23.0
