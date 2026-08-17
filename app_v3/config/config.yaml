@@ -1,0 +1,24 @@
+﻿pdf:
+  method: "pdfplumber"
+  min_paragraph_length: 50
+  max_paragraph_chars: 3000
+  
+translation:
+  model: "gemini-1.5-pro"
+  api_key: ""  # 👈 THÊM API KEY CỦA BẠN VÀO ĐÂY
+  source_lang: "English"
+  target_lang: "Vietnamese"
+  batch_size: 10
+  max_chars_per_batch: 4000
+  
+docx:
+  font_name: "Times New Roman"
+  font_size: 12
+  line_spacing: 1.5
+  show_original: true
+  show_translation: true
+  split_page: false
+  
+logging:
+  level: "INFO"
+  file: "translator.log"
