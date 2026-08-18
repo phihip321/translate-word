@@ -23,7 +23,17 @@ https://makersuite.google.com/app/apikey
 - Cho phép chọn chapter cần dịch hoặc dịch toàn bộ.
 - Dịch sang tiếng Việt bằng Gemini 3.5 Flash.
 - Xuất ra file Word (.docx) có bố cục rõ ràng (tiêu đề + đoạn văn được đánh số).
-
+[File PDF gốc] 
+     ↓ 
+(Phần mềm): Đọc file, lọc Header/Footer, tách danh sách Chương
+     ↓ 
+(Người dùng): Chọn "Chương 1" trên màn hình
+     ↓ 
+(Phần mềm): Tách chữ/bảng của Chương 1 -> Gửi đoạn văn sang AI
+     ↓ 
+(AI): Dịch thoát ý, giữ thuật ngữ & định dạng
+     ↓ 
+(Phần mềm): Nhận bản dịch -> Dựng lại Bảng/Style -> Xuất file Word (.docx)
 ---
 
 ## 📁 **Cấu trúc thư mục**
